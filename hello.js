@@ -3,3 +3,4 @@ export default function handler(req, res) {
     hello: "world"
   });
 }
+``
