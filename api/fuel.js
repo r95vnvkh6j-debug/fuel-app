@@ -1,42 +1,30 @@
-
 import axios from "axios";
-import cheerio from "cheerio";
 
 export default async function handler(req, res) {
   try {
-    const response = await axios.get(
-      "https://bensinpriser.nu/stationer/95/vasterbottens-lan/skelleftea",
-      {
-        headers: {
-          "User-Agent": "Mozilla/5.0"
-        }
-      }
-    );
 
-    const $ = cheerio.load(response.data);
+    const url = "https://bensinpriser.nu/stationer/95/vasterbottens-lan/skelleftea";
 
-    let stations = [];
-
-    $("table tr").each((i, el) => {
-      const cols = $(el).find("td");
-
-      if (cols.length < 2) return;
-
-      const name = $(cols[0]).text().trim();
-      const priceText = $(cols[1]).text().trim();
-
-      const price = parseFloat(
-        priceText.replace("kr", "").replace(",", ".").trim()
-      );
-
-      if (name && !isNaN(price)) {
-        stations.push({ station: name, price });
-      }
+    const response = await axios.get(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "Accept-Language": "sv-SE"
+      },
+      timeout: 5000
     });
 
-    res.status(200).json(stations);
+    // ✅ returnera RAW html (för debug)
+    res.status(200).json({
+      ok: true,
+      preview: response.data.substring(0, 300)
+    });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+
+    res.status(500).json({
+      error: err.message,
+      info: "fetch failed"
+    });
+
   }
 }
