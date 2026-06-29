@@ -3,40 +3,92 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fuel App</title>
+
+<title>Fuel Dashboard</title>
 
 <style>
 body{
-  font-family: Arial;
-  background:#111;
-  color:white;
+  font-family: Arial, sans-serif;
+  background:#0a0a0a;
+  color:#fff;
   padding:40px;
 }
-.card{
-  background:#222;
-  padding:20px;
-  margin-top:20px;
-  border-radius:10px;
-}
-.success{
-  color:#22c55e;
-}
-.error{
-  color:#ef4444;
-}
-</style>
 
+/* header */
+h1{
+  margin-bottom:10px;
+}
+
+/* status */
+.status{
+  background:#1a1a1a;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:20px;
+}
+
+/* grid */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:15px;
+}
+
+/* cards */
+.card{
+  background:#1a1a1a;
+  padding:15px;
+  border-radius:12px;
+  border:1px solid #333;
+  transition:0.2s;
+}
+
+.card:hover{
+  transform:translateY(-4px);
+}
+
+/* cheapest highlight */
+.cheapest{
+  border:2px solid #22c55e;
+}
+
+/* price */
+.price{
+  font-size:22px;
+  font-weight:bold;
+  margin-top:8px;
+}
+
+/* color helpers */
+.green{color:#22c55e;}
+.red{color:#ef4444;}
+.gray{color:#aaa;}
+
+</style>
 </head>
+
 <body>
 
-<h1>🚀 Fuel API Test</h1>
+<h1>⛽ Bränslepriser Skellefteå</h1>
 
-<div id="status" class="card">Laddar...</div>
+<div id="status" class="status gray">
+Laddar data...
+</div>
+
+<h2 id="cheapestBox"></h2>
+
+<div id="grid" class="grid"></div>
 
 <script>
-async function checkAPI(){
+
+async function fetchFuel(){
+
+  const status = document.getElementById("status");
+  const grid = document.getElementById("grid");
+
   try{
-    const res = await fetch("/api/hello");
+
+    const res = await fetch("/api/fuel");
 
     if(!res.ok){
       throw new Error("API svarade inte");
@@ -44,22 +96,39 @@ async function checkAPI(){
 
     const data = await res.json();
 
-    document.getElementById("status").innerHTML = `
-      <div class="success">✅ API FUNKAR!</div>
-      <pre>${JSON.stringify(data, null, 2)}</pre>
-    `;
+    if(!data || data.length === 0){
+      status.innerHTML = "<span class='red'>❌ Ingen data hittades</span>";
+      return;
+    }
+
+    status.innerHTML = "<span class='green'>✅ Data laddad</span>";
+
+    // hitta billigaste
+    let cheapest = data.reduce((a,b)=> a.price < b.price ? a : b);
+
+    document.getElementById("cheapestBox").innerHTML =
+      `<span class="green">Billigast: ${cheapest.station} — ${cheapest.price} kr</span>`;
+
+    // rendera
+    grid.innerHTML = data.map(d => `
+      <div class="card ${d.station === cheapest.station ? 'cheapest' : ''}">
+        <div class="gray">${d.station}</div>
+        <div class="price">${d.price.toFixed(2)} kr</div>
+      </div>
+    `).join("");
 
   }catch(err){
 
-    document.getElementById("status").innerHTML = `
-      <div class="error">❌ API FUNKAR INTE</div>
-      <p>${err.message}</p>
-      <p>Kontrollera /api/hello</p>
+    status.innerHTML = `
+      <span class="red">❌ API FUNKAR INTE</span><br>
+      <small>${err.message}</small>
     `;
+
   }
 }
 
-checkAPI();
+fetchFuel();
+
 </script>
 
 </body>
