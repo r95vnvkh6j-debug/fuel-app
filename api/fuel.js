@@ -1,5 +1,4 @@
 import axios from "axios";
-import cheerio from "cheerio";
 
 export default async function handler(req, res) {
   try {
@@ -8,38 +7,38 @@ export default async function handler(req, res) {
 
     const response = await axios.get(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept-Language": "sv-SE"
+        "User-Agent": "Mozilla/5.0"
       }
     });
 
-    const $ = cheerio.load(response.data);
+    const html = response.data;
 
-    let stations = [];
+    const stations = [];
 
-    // 🔥 rätt selector (baserat på sidan)
-    $("table tr").each((i, el) => {
+    // 🔥 hitta rader i tabellen manuellt
+    const rows = html.split("<tr");
 
-      const cols = $(el).find("td");
+    rows.forEach(row => {
 
-      if (cols.length < 2) return;
+      const matchName = row.match(/<td[^>]*>(.*?)<\/td>/);
+      const matchPrice = row.match(/(\d+,\d+)\s*kr/);
 
-      const name = $(cols[0]).text().trim();
+      if (matchName && matchPrice) {
 
-      const priceText = $(cols[1]).text().trim();
+        const name = matchName[1]
+          .replace(/<[^>]+>/g, "")
+          .trim();
 
-      const cleaned = priceText
-        .replace("kr", "")
-        .replace(",", ".")
-        .trim();
+        const price = parseFloat(
+          matchPrice[1].replace(",", ".")
+        );
 
-      const price = parseFloat(cleaned);
-
-      if (name && !isNaN(price)) {
-        stations.push({
-          station: name,
-          price: price
-        });
+        if (name && !isNaN(price)) {
+          stations.push({
+            station: name,
+            price: price
+          });
+        }
       }
 
     });
@@ -54,3 +53,4 @@ export default async function handler(req, res) {
 
   }
 }
+``
