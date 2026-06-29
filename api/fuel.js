@@ -2,6 +2,7 @@ import axios from "axios";
 
 export default async function handler(req, res) {
   try {
+
     const url = "https://bensinpriser.nu/stationer/95/vasterbottens-lan/skelleftea";
 
     const response = await axios.get(url, {
@@ -16,39 +17,50 @@ export default async function handler(req, res) {
 
     const stations = [];
 
-    // dela upp i rader
-    const rows = html.split("<tr");
+    // 🔥 hitta alla table rows
+    const rows = html.match(/<tr[^>]*>(.*?)<\/tr>/gs);
 
-    rows.forEach(row => {
+    if (rows) {
+      rows.forEach(row => {
 
-      // hoppa över "okänt"
-      if (row.includes("Okänt")) return;
+        // hoppa över "okänt"
+        if (row.includes("Okänt")) return;
 
-      // hitta pris som slutar med kr
-      const priceMatch = row.match(/(\d+,\d+)\s*kr/);
+        const cols = row.match(/<td[^>]*>(.*?)<\/td>/gs);
 
-      // hitta första td (stationsnamn)
-      const nameMatch = row.match(/<td[^>]*>(.*?)<\/td>/);
+        // behöver minst 3 kolumner
+        if (!cols || cols.length < 3) return;
 
-      if (!priceMatch || !nameMatch) return;
+        // ✅ station namn (kolumn 1)
+        const name = cols[0]
+          .replace(/<[^>]+>/g, "")
+          .trim();
 
-      const name = nameMatch[1]
-        .replace(/<[^>]+>/g, "")
-        .trim();
+        // ✅ adress (kolumn 2)
+        const address = cols[1]
+          .replace(/<[^>]+>/g, "")
+          .trim();
 
-      const price = parseFloat(
-        priceMatch[1].replace(",", ".")
-      );
+        // ✅ pris (kolumn 3)
+        const priceText = cols[2]
+          .replace(/<[^>]+>/g, "")
+          .replace("kr", "")
+          .trim();
 
-      // filtrera rimliga priser
-      if (price > 15 && price < 30 && name.length > 2) {
-        stations.push({
-          station: name,
-          price: price
-        });
-      }
+        if (!priceText.includes(",")) return;
 
-    });
+        const price = parseFloat(priceText.replace(",", "."));
+
+        // ✅ filtrera rimliga värden
+        if (price > 15 && price < 30) {
+          stations.push({
+            station: name + " " + address,
+            price: price
+          });
+        }
+
+      });
+    }
 
     // ✅ sortera billigast först
     stations.sort((a, b) => a.price - b.price);
