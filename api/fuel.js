@@ -2,46 +2,56 @@ import axios from "axios";
 
 export default async function handler(req, res) {
   try {
-
     const url = "https://bensinpriser.nu/stationer/95/vasterbottens-lan/skelleftea";
 
     const response = await axios.get(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0"
-      }
+        "User-Agent": "Mozilla/5.0",
+        "Accept-Language": "sv-SE"
+      },
+      timeout: 5000
     });
 
     const html = response.data;
 
     const stations = [];
 
-    // 🔥 hitta rader i tabellen manuellt
+    // dela upp i rader
     const rows = html.split("<tr");
 
     rows.forEach(row => {
 
-      const matchName = row.match(/<td[^>]*>(.*?)<\/td>/);
-      const matchPrice = row.match(/(\d+,\d+)\s*kr/);
+      // hoppa över "okänt"
+      if (row.includes("Okänt")) return;
 
-      if (matchName && matchPrice) {
+      // hitta pris som slutar med kr
+      const priceMatch = row.match(/(\d+,\d+)\s*kr/);
 
-        const name = matchName[1]
-          .replace(/<[^>]+>/g, "")
-          .trim();
+      // hitta första td (stationsnamn)
+      const nameMatch = row.match(/<td[^>]*>(.*?)<\/td>/);
 
-        const price = parseFloat(
-          matchPrice[1].replace(",", ".")
-        );
+      if (!priceMatch || !nameMatch) return;
 
-        if (name && !isNaN(price)) {
-          stations.push({
-            station: name,
-            price: price
-          });
-        }
+      const name = nameMatch[1]
+        .replace(/<[^>]+>/g, "")
+        .trim();
+
+      const price = parseFloat(
+        priceMatch[1].replace(",", ".")
+      );
+
+      // filtrera rimliga priser
+      if (price > 15 && price < 30 && name.length > 2) {
+        stations.push({
+          station: name,
+          price: price
+        });
       }
 
     });
+
+    // ✅ sortera billigast först
+    stations.sort((a, b) => a.price - b.price);
 
     res.status(200).json(stations);
 
@@ -53,4 +63,3 @@ export default async function handler(req, res) {
 
   }
 }
-``
