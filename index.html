@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>Fuel Dashboard</title>
+
+<style>
+body{
+  font-family: Arial;
+  background:#111;
+  color:white;
+  padding:40px;
+}
+.card{
+  background:#222;
+  padding:15px;
+  margin:10px 0;
+  border-radius:10px;
+}
+.price{
+  font-size:24px;
+}
+.cheapest{
+  border:2px solid #22c55e;
+}
+</style>
+</head>
+
+<body>
+
+<h1>⛽ Bränslepriser Skellefteå</h1>
+
+<h2 id="cheapest"></h2>
+
+<div id="data"></div>
+
+<script>
+async function fetchFuel(){
+  const res = await fetch("/api/fuel");
+  const data = await res.json();
+
+  if(!data || data.length === 0){
+    document.getElementById("data").innerHTML = "Ingen data";
+    return;
+  }
+
+  // hitta billigaste
+  let cheapest = data.reduce((a,b)=> a.price < b.price ? a : b);
+
+  document.getElementById("cheapest").innerText =
+    `Billigast: ${cheapest.station} – ${cheapest.price} kr`;
+
+  document.getElementById("data").innerHTML =
+    data.map(d=>`
+      <div class="card ${d.station===cheapest.station ? 'cheapest' : ''}">
+        <div>${d.station}</div>
+        <div class="price">${d.price} kr</div>
+      </div>
+    `).join("");
+}
+
+fetchFuel();
+</script>
+
+</body>
+</html>
