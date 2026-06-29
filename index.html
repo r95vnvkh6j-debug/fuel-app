@@ -2,7 +2,8 @@
 <html lang="sv">
 <head>
 <meta charset="UTF-8">
-<title>Fuel Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fuel App</title>
 
 <style>
 body{
@@ -13,53 +14,52 @@ body{
 }
 .card{
   background:#222;
-  padding:15px;
-  margin:10px 0;
+  padding:20px;
+  margin-top:20px;
   border-radius:10px;
 }
-.price{
-  font-size:24px;
+.success{
+  color:#22c55e;
 }
-.cheapest{
-  border:2px solid #22c55e;
+.error{
+  color:#ef4444;
 }
 </style>
-</head>
 
+</head>
 <body>
 
-<h1>⛽ Bränslepriser Skellefteå</h1>
+<h1>🚀 Fuel API Test</h1>
 
-<h2 id="cheapest"></h2>
-
-<div id="data"></div>
+<div id="status" class="card">Laddar...</div>
 
 <script>
-async function fetchFuel(){
-  const res = await fetch("/api/fuel");
-  const data = await res.json();
+async function checkAPI(){
+  try{
+    const res = await fetch("/api/hello");
 
-  if(!data || data.length === 0){
-    document.getElementById("data").innerHTML = "Ingen data";
-    return;
+    if(!res.ok){
+      throw new Error("API svarade inte");
+    }
+
+    const data = await res.json();
+
+    document.getElementById("status").innerHTML = `
+      <div class="success">✅ API FUNKAR!</div>
+      <pre>${JSON.stringify(data, null, 2)}</pre>
+    `;
+
+  }catch(err){
+
+    document.getElementById("status").innerHTML = `
+      <div class="error">❌ API FUNKAR INTE</div>
+      <p>${err.message}</p>
+      <p>Kontrollera /api/hello</p>
+    `;
   }
-
-  // hitta billigaste
-  let cheapest = data.reduce((a,b)=> a.price < b.price ? a : b);
-
-  document.getElementById("cheapest").innerText =
-    `Billigast: ${cheapest.station} – ${cheapest.price} kr`;
-
-  document.getElementById("data").innerHTML =
-    data.map(d=>`
-      <div class="card ${d.station===cheapest.station ? 'cheapest' : ''}">
-        <div>${d.station}</div>
-        <div class="price">${d.price} kr</div>
-      </div>
-    `).join("");
 }
 
-fetchFuel();
+checkAPI();
 </script>
 
 </body>
